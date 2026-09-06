@@ -1,0 +1,6 @@
+{
+  "name": "ProTask",
+  "description": "Full-stack MERN task management and Kanban board application with real-time drag-and-drop, dynamic subtask progress, and JWT authentication.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
