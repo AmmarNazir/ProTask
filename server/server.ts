@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { connectDB } from './db/connect.ts';
@@ -9,17 +10,17 @@ import taskRoutes from './routes/task.routes.ts';
 
 async function startServer() {
   const app = express();
-  app.use((_req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  if (_req.method === 'OPTIONS') {
-    res.sendStatus(200);
-    return;
-  }
-  next();
-});
   const PORT = 3000;
+
+  // CORS middleware (placed FIRST before all other middleware)
+  app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+    credentials: false,
+    optionsSuccessStatus: 200,
+  }));
+  app.options('*', cors());
 
   // Body parser middleware
   app.use(express.json());
