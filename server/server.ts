@@ -9,6 +9,16 @@ import taskRoutes from './routes/task.routes.ts';
 
 async function startServer() {
   const app = express();
+  app.use((_req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (_req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  next();
+});
   const PORT = 3000;
 
   // Body parser middleware
