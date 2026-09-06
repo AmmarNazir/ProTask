@@ -321,15 +321,15 @@ export default function App() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,#1e1b4b_0%,transparent_50%)] opacity-50 pointer-events-none" />
 
         {/* App Header */}
-        <header className="h-16 flex items-center justify-between px-6 sm:px-8 border-b border-zinc-800/50 backdrop-blur-md z-10 bg-[#09090b]/80 sticky top-0">
+        <header className="h-16 flex items-center justify-between px-3 sm:px-6 md:px-8 border-b border-zinc-800/50 backdrop-blur-md z-10 bg-[#09090b]/80 sticky top-0">
           {/* Brand Name & Tagline & Board Switcher Trigger */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
               <button
                 onClick={() => {
                   if (token) setShowBoardDrawer(true);
                 }}
-                className="w-8 h-8 rounded-lg bg-indigo-600 flex md:hidden items-center justify-center shadow-[0_0_15px_rgba(79,70,229,0.4)] cursor-pointer"
+                className="w-8 h-8 rounded-lg bg-indigo-600 flex md:hidden items-center justify-center shadow-[0_0_15px_rgba(79,70,229,0.4)] cursor-pointer shrink-0"
                 title="ProTask (Click to Switch Boards)"
               >
                 <CheckSquare className="w-4 h-4 text-white stroke-[2.5]" />
@@ -337,18 +337,19 @@ export default function App() {
               <div>
                 <h1 className="text-base font-bold tracking-tight text-zinc-100 flex items-center gap-2">
                   <span>ProTask</span>
-                  <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 tracking-wider">
+                  {/* Hide Kanban tag on mobile, show on tablet and desktop */}
+                  <span className="hidden sm:inline-block text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 tracking-wider">
                     Kanban
                   </span>
                 </h1>
               </div>
             </div>
 
-            {/* Active Board Switcher Pill */}
+            {/* Active Board Switcher Pill: Hidden on mobile and tablet (hidden lg:flex), shown on desktop */}
             {token && activeBoard && (
               <button
                 onClick={() => setShowBoardDrawer(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 border border-zinc-800 text-xs font-medium text-zinc-200 transition-all cursor-pointer shadow-sm ml-2 group"
+                className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 border border-zinc-800 text-xs font-medium text-zinc-200 transition-all cursor-pointer shadow-sm ml-2 group shrink-0"
                 title="Click to Switch or Create Boards"
               >
                 <Layers className="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform" />
@@ -361,14 +362,14 @@ export default function App() {
           </div>
 
           {/* Right Header: Database status & User Session */}
-          <div className="flex items-center gap-4 sm:gap-6">
-            {/* Database Live State Pill showing ACTIVE USER'S counts */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800/80 text-xs text-zinc-300">
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-6 shrink-0">
+            {/* Database Live State Pill: Hidden on mobile (<sm), visible on tablet (sm/md) and desktop */}
+            <div className="hidden sm:flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800/80 text-xs text-zinc-300 shrink-0">
               <div className="relative flex items-center justify-center">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping absolute opacity-75" />
                 <span className="w-2 h-2 rounded-full bg-emerald-500 relative" />
               </div>
-              <span className="hidden sm:inline text-zinc-400">Database:</span>
+              <span className="hidden md:inline text-zinc-400">Database:</span>
               <strong className="text-emerald-400 font-medium">{health?.database?.status || 'Online'}</strong>
               {token ? (
                 <span className="text-zinc-400 hidden xl:inline">
@@ -392,25 +393,25 @@ export default function App() {
               </button>
             </div>
 
-            <div className="h-4 w-[1px] bg-zinc-800 hidden sm:block" />
+            <div className="h-4 w-[1px] bg-zinc-800 hidden md:block" />
 
             {/* Session status / User profile / Logout */}
             {currentUser ? (
-              <div className="flex items-center gap-2.5">
-                {/* Clicking User Card opens User Profile Modal */}
+              <div className="flex items-center gap-1.5 sm:gap-2.5">
+                {/* Clicking User Card opens User Profile Modal - show profile avatar AND name across mobile, tablet, and desktop */}
                 <button
                   onClick={() => setShowProfileModal(true)}
-                  className="flex items-center gap-2.5 text-left px-2.5 py-1.5 rounded-xl hover:bg-zinc-800/60 border border-transparent hover:border-zinc-800 transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-zinc-800/60 border border-transparent hover:border-zinc-800 transition-all cursor-pointer"
                   title="Open Profile & Productivity Statistics"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-700 to-indigo-500 border border-indigo-400/40 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-700 to-indigo-500 border border-indigo-400/40 flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0">
                     {currentUser.name.slice(0, 2).toUpperCase()}
                   </div>
-                  <div className="hidden sm:block">
-                    <div className="text-xs font-semibold text-zinc-200 leading-tight">
+                  <div className="text-left">
+                    <div className="text-xs font-semibold text-zinc-200 leading-tight max-w-[90px] sm:max-w-[130px] truncate">
                       {currentUser.name}
                     </div>
-                    <div className="text-[10px] text-zinc-500 font-mono leading-tight truncate max-w-[120px]">
+                    <div className="hidden sm:block text-[10px] text-zinc-500 font-mono leading-tight truncate max-w-[120px]">
                       {currentUser.email}
                     </div>
                   </div>
@@ -419,7 +420,7 @@ export default function App() {
                 {/* Direct Sign Out Button */}
                 <button
                   onClick={logout}
-                  className="p-1.5 text-zinc-400 hover:text-rose-400 rounded-lg hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                  className="p-1.5 text-zinc-400 hover:text-rose-400 rounded-lg hover:bg-zinc-800/60 transition-colors cursor-pointer shrink-0"
                   title="Sign Out"
                 >
                   <LogOut className="w-4 h-4" />
@@ -430,17 +431,17 @@ export default function App() {
                 <button
                   onClick={handleQuickDemoLogin}
                   disabled={authLoading}
-                  className="px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer border border-zinc-700/60"
+                  className="hidden sm:flex px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-medium items-center gap-1.5 transition-colors cursor-pointer border border-zinc-700/60"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Demo Login</span>
+                  <span>Demo</span>
                 </button>
                 <button
                   onClick={() => {
                     setAuthMode('login');
                     setShowAuthModal(true);
                   }}
-                  className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium flex items-center gap-1.5 shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium flex items-center gap-1.5 shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all cursor-pointer"
                 >
                   <Lock className="w-3 h-3" />
                   <span>Sign In</span>
