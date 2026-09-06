@@ -1,10 +1,10 @@
-import { Router, Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import mongoose from 'mongoose';
 import { User } from '../models/User.ts';
 import { Board } from '../models/Board.ts';
 import { Column } from '../models/Column.ts';
 import { Task } from '../models/Task.ts';
-import { generateToken, authenticate, AuthenticatedRequest } from '../middleware/auth.ts';
+import { generateToken, authenticate, type AuthenticatedRequest } from '../middleware/auth.ts';
 
 const router = Router();
 

@@ -1,9 +1,9 @@
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import mongoose from 'mongoose';
-import { Task, TaskPriority } from '../models/Task.ts';
+import { Task, type TaskPriority } from '../models/Task.ts';
 import { Column } from '../models/Column.ts';
 import { Board } from '../models/Board.ts';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth.ts';
+import { authenticate, type AuthenticatedRequest } from '../middleware/auth.ts';
 
 const router = Router();
 
