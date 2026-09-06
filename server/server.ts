@@ -1,11 +1,11 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { connectDB } from './server/db/connect.js';
-import authRoutes from './server/routes/auth.routes.js';
-import boardRoutes from './server/routes/board.routes.js';
-import columnRoutes from './server/routes/column.routes.js';
-import taskRoutes from './server/routes/task.routes.js';
+import { connectDB } from './db/connect.js';
+import authRoutes from './routes/auth.routes.js';
+import boardRoutes from './routes/board.routes.js';
+import columnRoutes from './routes/column.routes.js';
+import taskRoutes from './routes/task.routes.js';
 
 async function startServer() {
   const app = express();
@@ -65,6 +65,7 @@ async function startServer() {
   // --- Vite Frontend Middleware / Static Serving ---
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
+      root: process.cwd(),
       server: { middlewareMode: true },
       appType: 'spa',
     });
