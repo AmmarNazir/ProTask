@@ -1,11 +1,11 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { connectDB } from './db/connect.js';
-import authRoutes from './routes/auth.routes.js';
-import boardRoutes from './routes/board.routes.js';
-import columnRoutes from './routes/column.routes.js';
-import taskRoutes from './routes/task.routes.js';
+import { connectDB } from './db/connect.ts';
+import authRoutes from './routes/auth.routes.ts';
+import boardRoutes from './routes/board.routes.ts';
+import columnRoutes from './routes/column.routes.ts';
+import taskRoutes from './routes/task.routes.ts';
 
 async function startServer() {
   const app = express();

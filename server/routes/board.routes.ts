@@ -1,9 +1,9 @@
 import { Router, Response } from 'express';
-import mongoose from 'express';
-import { Board } from '../models/Board.js';
-import { Column } from '../models/Column.js';
-import { Task } from '../models/Task.js';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth.js';
+import mongoose from 'mongoose';
+import { Board } from '../models/Board.ts';
+import { Column } from '../models/Column.ts';
+import { Task } from '../models/Task.ts';
+import { authenticate, AuthenticatedRequest } from '../middleware/auth.ts';
 
 const router = Router();
 
