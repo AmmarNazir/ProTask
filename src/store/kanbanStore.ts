@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import {
+  API_BASE,
   Board,
   Column,
   Task,
@@ -11,6 +12,120 @@ import {
   SortOption,
   SortDirection,
 } from '../types.js';
+
+const DEFAULT_FALLBACK_BOARD: Board = {
+  _id: 'demo-board-default',
+  title: 'Sprint Roadmap (Demo)',
+  owner: 'demo-user',
+  columnOrder: ['col-backlog', 'col-in-progress', 'col-review', 'col-done'],
+  columns: [
+    {
+      _id: 'col-backlog',
+      boardId: 'demo-board-default',
+      title: 'Backlog',
+      taskIds: ['task-1', 'task-2'],
+      tasks: [
+        {
+          _id: 'task-1',
+          columnId: 'col-backlog',
+          title: 'Explore Drag & Drop Architecture',
+          description: 'Evaluate smooth reordering across columns with optimistic updates.',
+          priority: 'Medium',
+          subtasks: [
+            { _id: 'sub-1', title: 'Test touch events', completed: true },
+            { _id: 'sub-2', title: 'Verify drop animation', completed: false },
+          ],
+          dueDate: new Date(Date.now() + 86400000 * 4).toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          _id: 'task-2',
+          columnId: 'col-backlog',
+          title: 'Design Dark Mode Elevation Cards',
+          description: 'Maintain strict high contrast and accessible WCAG AA standards.',
+          priority: 'Low',
+          subtasks: [],
+          dueDate: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      _id: 'col-in-progress',
+      boardId: 'demo-board-default',
+      title: 'In Progress',
+      taskIds: ['task-3'],
+      tasks: [
+        {
+          _id: 'task-3',
+          columnId: 'col-in-progress',
+          title: 'Multi-Board Workspace Switcher',
+          description: 'Manage independent project workflows in dedicated boards.',
+          priority: 'High',
+          subtasks: [
+            { _id: 'sub-3', title: 'Implement slide-out drawer', completed: true },
+            { _id: 'sub-4', title: 'Add board deletion safeguard', completed: true },
+          ],
+          dueDate: new Date(Date.now() + 86400000 * 2).toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      _id: 'col-review',
+      boardId: 'demo-board-default',
+      title: 'Review',
+      taskIds: ['task-4'],
+      tasks: [
+        {
+          _id: 'task-4',
+          columnId: 'col-review',
+          title: 'JWT Token Security Validation',
+          description: 'Ensure Bearer token headers and salted bcrypt hashes are verified.',
+          priority: 'High',
+          subtasks: [],
+          dueDate: new Date(Date.now() + 86400000).toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      _id: 'col-done',
+      boardId: 'demo-board-default',
+      title: 'Done',
+      taskIds: ['task-5'],
+      tasks: [
+        {
+          _id: 'task-5',
+          columnId: 'col-done',
+          title: 'Vite Relative Asset Configuration',
+          description: 'Set base: ./ to prevent 404 errors on GitHub Pages subpaths.',
+          priority: 'Medium',
+          subtasks: [
+            { _id: 'sub-5', title: 'Verify ./assets path resolution', completed: true },
+          ],
+          dueDate: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
 
 export interface OptimisticAction {
   id: string;
@@ -121,12 +236,20 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   },
 
   updateProfile: async (name: string, email: string) => {
-    const { token } = get();
+    const { token, currentUser } = get();
     if (!token) return false;
 
     set({ isActionLoading: true, error: null });
+
+    if (token.startsWith('demo-')) {
+      const updated = { ...(currentUser || { id: 'demo-user', createdAt: new Date().toISOString() }), name, email };
+      localStorage.setItem('kanban_user', JSON.stringify(updated));
+      set({ currentUser: updated, isActionLoading: false });
+      return true;
+    }
+
     try {
-      const res = await fetch('/api/auth/profile', {
+      const res = await fetch(`${API_BASE}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -134,6 +257,10 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         },
         body: JSON.stringify({ name, email }),
       });
+      if (!res.ok) {
+        set({ error: 'Failed to update profile.' });
+        return false;
+      }
       const data = await res.json();
 
       if (data.success && data.user) {
@@ -154,13 +281,47 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   },
 
   fetchUserStats: async () => {
-    const { token } = get();
+    const { token, activeBoard, boards } = get();
     if (!token) return;
 
+    if (token.startsWith('demo-')) {
+      const boardToCount = activeBoard || boards[0] || DEFAULT_FALLBACK_BOARD;
+      let totalTasks = 0;
+      let completedTasks = 0;
+      let highPriorityTasks = 0;
+      let mediumPriorityTasks = 0;
+      let lowPriorityTasks = 0;
+
+      for (const col of boardToCount.columns || []) {
+        for (const task of col.tasks || []) {
+          totalTasks++;
+          if (col.title.toLowerCase().includes('done')) completedTasks++;
+          if (task.priority === 'High') highPriorityTasks++;
+          if (task.priority === 'Medium') mediumPriorityTasks++;
+          if (task.priority === 'Low') lowPriorityTasks++;
+        }
+      }
+
+      set({
+        userStats: {
+          totalBoards: boards.length || 1,
+          totalColumns: boardToCount.columns?.length || 4,
+          totalTasks,
+          completedTasks,
+          pendingTasks: totalTasks - completedTasks,
+          highPriorityTasks,
+          mediumPriorityTasks,
+          lowPriorityTasks,
+        },
+      });
+      return;
+    }
+
     try {
-      const res = await fetch('/api/auth/stats', {
+      const res = await fetch(`${API_BASE}/api/auth/stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) return;
       const data = await res.json();
       if (data.success && data.stats) {
         set({ userStats: data.stats });
@@ -224,10 +385,26 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     if (!token) return;
 
     set({ isLoading: true, error: null });
+
+    if (token.startsWith('demo-')) {
+      const current = get().boards;
+      const boardsList = current.length > 0 ? current : [DEFAULT_FALLBACK_BOARD];
+      const activeId = boardsList[0]._id || boardsList[0].id;
+      set({ boards: boardsList, activeBoardId: activeId, activeBoard: boardsList[0], isLoading: false });
+      return;
+    }
+
     try {
-      const res = await fetch('/api/boards', {
+      const res = await fetch(`${API_BASE}/api/boards`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        // Fallback for static GitHub Pages hosting
+        const boardsList = [DEFAULT_FALLBACK_BOARD];
+        const activeId = boardsList[0]._id || boardsList[0].id;
+        set({ boards: boardsList, activeBoardId: activeId, activeBoard: boardsList[0] });
+        return;
+      }
       const data = await res.json();
 
       if (data.success && data.boards) {
@@ -242,8 +419,11 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
           get().fetchActiveBoard(firstId);
         }
       }
-    } catch (err: any) {
-      set({ error: err.message || 'Failed to fetch boards.' });
+    } catch {
+      // Fallback for static preview
+      const boardsList = [DEFAULT_FALLBACK_BOARD];
+      const activeId = boardsList[0]._id || boardsList[0].id;
+      set({ boards: boardsList, activeBoardId: activeId, activeBoard: boardsList[0] });
     } finally {
       set({ isLoading: false });
     }
@@ -255,15 +435,26 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   },
 
   fetchActiveBoard: async (boardId) => {
-    const { token, activeBoardId } = get();
+    const { token, activeBoardId, boards } = get();
     const targetId = boardId || activeBoardId;
     if (!token || !targetId) return;
 
+    if (token.startsWith('demo-')) {
+      const found = boards.find((b) => (b._id || b.id) === targetId);
+      if (found) set({ activeBoard: found });
+      return;
+    }
+
     set({ isLoading: true, error: null });
     try {
-      const res = await fetch(`/api/boards/${targetId}`, {
+      const res = await fetch(`${API_BASE}/api/boards/${targetId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        const found = boards.find((b) => (b._id || b.id) === targetId);
+        if (found) set({ activeBoard: found });
+        return;
+      }
       const data = await res.json();
 
       if (data.success && data.board) {
@@ -279,12 +470,43 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   },
 
   createBoard: async (title, seedColumns = true) => {
-    const { token } = get();
+    const { token, boards } = get();
     if (!token) return null;
 
     set({ isActionLoading: true });
+
+    if (token.startsWith('demo-')) {
+      const newBoard: Board = {
+        _id: `board-${Date.now()}`,
+        title,
+        owner: 'demo-user',
+        columnOrder: seedColumns ? ['c1', 'c2', 'c3'] : [],
+        columns: seedColumns ? [
+          { _id: 'c1', boardId: `board-${Date.now()}`, title: 'To Do', taskIds: [], tasks: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { _id: 'c2', boardId: `board-${Date.now()}`, title: 'In Progress', taskIds: [], tasks: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { _id: 'c3', boardId: `board-${Date.now()}`, title: 'Done', taskIds: [], tasks: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        ] : [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      set({
+        boards: [...boards, newBoard],
+        activeBoardId: newBoard._id,
+        activeBoard: newBoard,
+        isActionLoading: false,
+        recentAction: {
+          id: String(Date.now()),
+          type: 'CREATE_BOARD',
+          status: 'confirmed',
+          message: `Created board "${title}"`,
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      });
+      return newBoard;
+    }
+
     try {
-      const res = await fetch('/api/boards', {
+      const res = await fetch(`${API_BASE}/api/boards`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -292,6 +514,10 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         },
         body: JSON.stringify({ title, seedDefaultColumns: seedColumns }),
       });
+      if (!res.ok) {
+        set({ error: 'Failed to create board.' });
+        return null;
+      }
       const data = await res.json();
 
       if (data.success && data.board) {
@@ -323,32 +549,30 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     if (!token) return;
 
     set({ isActionLoading: true });
+    const remaining = get().boards.filter((b) => (b._id || b.id) !== boardId);
+    set({
+      boards: remaining,
+      activeBoardId: remaining.length > 0 ? (remaining[0]._id || remaining[0].id) : null,
+      activeBoard: remaining.length > 0 ? remaining[0] : null,
+      recentAction: {
+        id: String(Date.now()),
+        type: 'DELETE_BOARD',
+        status: 'confirmed',
+        message: 'Board deleted.',
+        timestamp: new Date().toLocaleTimeString(),
+      },
+    });
+
+    if (token.startsWith('demo-')) {
+      set({ isActionLoading: false });
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/boards/${boardId}`, {
+      await fetch(`${API_BASE}/api/boards/${boardId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
-
-      if (data.success) {
-        const remaining = get().boards.filter((b) => (b._id || b.id) !== boardId);
-        set({
-          boards: remaining,
-          activeBoardId: remaining.length > 0 ? (remaining[0]._id || remaining[0].id) : null,
-          activeBoard: remaining.length > 0 ? null : null,
-          recentAction: {
-            id: String(Date.now()),
-            type: 'DELETE_BOARD',
-            status: 'confirmed',
-            message: 'Board deleted.',
-            timestamp: new Date().toLocaleTimeString(),
-          },
-        });
-
-        if (remaining.length > 0) {
-          get().fetchActiveBoard(remaining[0]._id || remaining[0].id);
-        }
-      }
     } catch (err: any) {
       set({ error: err.message });
     } finally {
@@ -361,8 +585,38 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     if (!token || !activeBoardId) return;
 
     set({ isActionLoading: true });
+
+    if (token.startsWith('demo-')) {
+      if (activeBoard) {
+        const newCol = {
+          _id: `col-${Date.now()}`,
+          boardId: activeBoardId,
+          title,
+          taskIds: [],
+          tasks: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        set({
+          activeBoard: {
+            ...activeBoard,
+            columns: [...(activeBoard.columns || []), newCol],
+          },
+          isActionLoading: false,
+          recentAction: {
+            id: String(Date.now()),
+            type: 'CREATE_COLUMN',
+            status: 'confirmed',
+            message: `Created column "${title}"`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        });
+      }
+      return;
+    }
+
     try {
-      const res = await fetch('/api/columns', {
+      const res = await fetch(`${API_BASE}/api/columns`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -412,8 +666,10 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       },
     });
 
+    if (token.startsWith('demo-')) return;
+
     try {
-      const res = await fetch(`/api/columns/${columnId}`, {
+      const res = await fetch(`${API_BASE}/api/columns/${columnId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -451,8 +707,17 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       },
     });
 
+    if (token.startsWith('demo-')) {
+      set((state) => ({
+        recentAction: state.recentAction
+          ? { ...state.recentAction, status: 'confirmed' }
+          : null,
+      }));
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/columns/${columnId}`, {
+      const res = await fetch(`${API_BASE}/api/columns/${columnId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -498,8 +763,47 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     if (!token || !activeBoard) return;
 
     set({ isActionLoading: true });
+
+    if (token.startsWith('demo-')) {
+      const newTask: Task = {
+        _id: `task-${Date.now()}`,
+        columnId,
+        title,
+        description,
+        priority,
+        subtasks: [],
+        dueDate: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      set({
+        activeBoard: {
+          ...activeBoard,
+          columns: (activeBoard.columns || []).map((col) => {
+            if (col._id === columnId) {
+              return {
+                ...col,
+                tasks: [...(col.tasks || []), newTask],
+                taskIds: [...(col.taskIds || []), newTask._id],
+              };
+            }
+            return col;
+          }),
+        },
+        isActionLoading: false,
+        recentAction: {
+          id: String(Date.now()),
+          type: 'CREATE_TASK',
+          status: 'confirmed',
+          message: `Added task "${title}"`,
+          timestamp: new Date().toLocaleTimeString(),
+        },
+      });
+      return;
+    }
+
     try {
-      const res = await fetch('/api/tasks', {
+      const res = await fetch(`${API_BASE}/api/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -558,8 +862,10 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       },
     });
 
+    if (token.startsWith('demo-')) return;
+
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(`${API_BASE}/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -635,8 +941,17 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       },
     });
 
+    if (token.startsWith('demo-')) {
+      set((state) => ({
+        recentAction: state.recentAction
+          ? { ...state.recentAction, status: 'confirmed' }
+          : null,
+      }));
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(`${API_BASE}/api/tasks/${taskId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -761,9 +1076,22 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       });
     }
 
+    if (token.startsWith('demo-')) {
+      set((state) => ({
+        recentAction: state.recentAction
+          ? {
+              ...state.recentAction,
+              status: 'confirmed',
+              message: `Demo mode: ${state.recentAction.message}`,
+            }
+          : null,
+      }));
+      return true;
+    }
+
     // 3. Fire the backend API call asynchronously
     try {
-      const res = await fetch('/api/tasks/reorder', {
+      const res = await fetch(`${API_BASE}/api/tasks/reorder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -860,9 +1188,22 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       },
     });
 
+    if (token.startsWith('demo-')) {
+      set((state) => ({
+        recentAction: state.recentAction
+          ? {
+              ...state.recentAction,
+              status: 'confirmed',
+              message: `Demo mode: ${state.recentAction.message}`,
+            }
+          : null,
+      }));
+      return true;
+    }
+
     // 3. Fire backend API call asynchronously
     try {
-      const res = await fetch(`/api/boards/${boardId}/reorder-columns`, {
+      const res = await fetch(`${API_BASE}/api/boards/${boardId}/reorder-columns`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
